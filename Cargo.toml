@@ -5,3 +5,5 @@ edition = "2024"
 publish = ["git"]
 
 [dependencies]
+firefly-rust = { version = "0.16.0", features = ["alloc", "talc"] }
+micromath = "2.1.0"
