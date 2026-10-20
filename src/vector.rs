@@ -1,3 +1,20 @@
+//! A 2D f32 vector with some angle calculation methods.
+//!
+//! # Examples
+//!
+//! ```
+//! use firefly_rust::*;
+//! use ffz_utils::vector::*;
+//! let vector = Vector::new(0.5, 0.5);
+//! assert_eq!(vector.dot(&Vector::new(1.0, 0.0)), 0.5);
+//! assert_eq!(vector.magnitude(), 0.75);
+//! assert_eq!(Vector::AXIS_ANGLE.angle_to(&Vector::new(1.0, 0.0)), Angle::from_degrees(0.0));
+//! assert_eq!(
+//!   Vector::new(1.0, 0.0).angle_from_axis().to_degrees().round(),
+//!   Angle::from_degrees(0.0).to_degrees().round()
+//! );
+//! ```
+
 use core::ops::Sub;
 
 use firefly_rust::{Angle, math};
@@ -5,6 +22,7 @@ use firefly_rust::{Angle, math};
 #[allow(unused)]
 use micromath::F32Ext;
 
+/// A 2D f32 vector with some angle calculation methods.
 #[derive(Debug, Default, Copy, Clone)]
 pub struct Vector {
     x: f32,
@@ -12,20 +30,24 @@ pub struct Vector {
 }
 
 impl Vector {
-    const AXIS_ANGLE: Vector = Vector::new(1.0, 0.0);
+    pub const AXIS_ANGLE: Vector = Vector::new(1.0, 0.0);
 
+    /// Create a `Vector` from `x` and `y`
     pub const fn new(x: f32, y: f32) -> Self {
         Self { x, y }
     }
 
+    /// Returns the integer value of `x`
     pub fn xu(&self) -> i32 {
         math::floor(self.x) as i32
     }
 
+    /// Returns the integer value of `y`
     pub fn yu(&self) -> i32 {
         math::floor(self.y) as i32
     }
 
+    /// Rotates the vector according to `rotation`.
     pub fn rotate(&self, rotation: f32) -> Vector {
         let old_dir_x = self.x;
         let dir_x = old_dir_x * math::cos(rotation) - self.y * math::sin(rotation);
@@ -33,19 +55,23 @@ impl Vector {
         Vector::new(dir_x, dir_y)
     }
 
+    /// The dot product of `other`.
     pub fn dot(&self, other: &Vector) -> f32 {
         self.x * other.x + self.y * other.y
     }
 
+    /// The magnitude of the vector.
     pub fn magnitude(&self) -> f32 {
         (self.x.powi(2) + self.y.powi(2)).sqrt()
     }
 
+    /// Angle to another vector.
     pub fn angle_to(&self, other: &Vector) -> Angle {
         let angle = other.y.atan2(other.x) - self.y.atan2(self.x);
         Angle::from_radians(angle).normalize()
     }
 
+    /// Angle from the axis.
     pub fn angle_from_axis(&self) -> Angle {
         Vector::AXIS_ANGLE.angle_to(self)
     }

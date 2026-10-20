@@ -1,3 +1,12 @@
+//! A utility library for Firefly Zero
+//!
+//! A library with utilities to write games in Rust for the
+//! [Firefly Zero](https://fireflyzero.com) handheld retro gaming
+//! console.
+//!
+//! Includes utilities for common graphics and calculations
+//! often needed in games.
+
 #![no_std]
 #![cfg_attr(not(test), no_main)]
 
@@ -19,6 +28,3 @@ pub mod tile_map;
 pub mod utilities;
 pub mod vec2;
 pub mod vector;
-
-pub const SCREEN_WIDTH: i32 = 240;
-pub const SCREEN_HEIGHT: i32 = 160;

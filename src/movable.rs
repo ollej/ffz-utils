@@ -1,3 +1,54 @@
+//! A trait that for movable objects.
+//!
+//! # Examples
+//!
+//! ```
+//! use firefly_rust::*;
+//! use ffz_utils::{movable::*, rectangle::*, tile::*, tile_map::*, vec2::*};
+//!
+//! // A `TileMap` is needed to check where object can move.
+//! let spritesheet = firefly_rust::load_file_buf("spritesheet").unwrap().into_image();
+//! let tile_size = Size::new(16, 16);
+//! let tiles = vec![
+//!   Tile::new(Rectangle::new(Point::new(0, 0), tile_size), 1, false),
+//!   Tile::new(Rectangle::new(Point::new(16, 0), tile_size), 1, false),
+//!   Tile::new(Rectangle::new(Point::new(0, 16), tile_size), 1, false),
+//!   Tile::new(Rectangle::new(Point::new(16, 16), tile_size), 1, false),
+//! ];
+//! let tile_map = TileMap::new(tiles, Size::new(32, 32), tile_size, spritesheet);
+//!
+//! struct Player {
+//!   rect: Rectangle,
+//!   movement: Vec2,
+//! }
+//!
+//! impl Movable for Player {
+//!   fn position(&self) -> Point {
+//!     self.rect.position
+//!   }
+//!   
+//!   fn rect(&self) -> Rectangle {
+//!     self.rect
+//!   }
+//!   
+//!   fn stop_movement(&mut self, stop_direction: StopDirection) {
+//!     match stop_direction {
+//!       StopDirection::X => self.movement.x = 0.0,
+//!       StopDirection::Y => self.movement.y = 0.0,
+//!       StopDirection::Both => self.movement = Vec2::zero(),
+//!     }
+//!   }
+//! }
+//!
+//! let mut player = Player {
+//!   rect: Rectangle::new(Point::new(10, 10), Size::new(16, 16)),
+//!   movement: Vec2::new(2.0, 2.0),
+//! };
+//! player.move_horizontally(player.position(), player.movement, Vec2::zero(), &tile_map);
+//! player.move_vertically(player.position(), player.movement, Vec2::zero(), &tile_map);
+//! assert_eq!(player.position(), Point::new(12, 12));
+//! ```
+
 use firefly_rust::{Point, math};
 
 use crate::{point_math::PointMath, rectangle::Rectangle, tile_map::TileMap, vec2::Vec2};
@@ -13,6 +64,7 @@ pub fn movement_to_step(amount: f32) -> i32 {
     }
 }
 
+/// Which direction blocks the movement.
 #[derive(PartialEq, Clone, Debug)]
 pub enum StopDirection {
     X,
@@ -21,12 +73,19 @@ pub enum StopDirection {
 }
 
 pub trait Movable {
+    /// Return the position of the object
     fn position(&self) -> Point;
 
+    /// Return `Rectangle` covering the object.
     fn rect(&self) -> Rectangle;
 
+    /// Stop the current movement in a specific direction.
     fn stop_movement(&mut self, stop_direction: StopDirection);
 
+    /// Move horizontally from position at a velocity.
+    ///
+    /// Supports nudging upwards 1 pixel if it is blocked.
+    /// Calls `stop_movement` with `StopDirection::X` if movement is blocked.
     fn move_horizontally(
         &mut self,
         mut position: Point,
@@ -55,6 +114,9 @@ pub trait Movable {
         (position, remainder)
     }
 
+    /// Move vertically from position at a velocity.
+    ///
+    /// Calls `stop_movement` with `StopDirection::Y` if movement is blocked.
     fn move_vertically(
         &mut self,
         mut position: Point,
@@ -79,23 +141,23 @@ pub trait Movable {
         (position, remainder)
     }
 
+    /// If the object overlaps another `Rectangle`.
     fn overlaps(&self, other: Rectangle) -> bool {
         self.rect().overlaps(other)
     }
 
-    fn is_position_free(&self, position: Point, tile_map: &TileMap) -> bool {
-        !tile_map.is_blocked(position)
-    }
-
+    /// Are all corners of the object free in the `TileMap`.
     fn is_rect_free(&self, tile_map: &TileMap) -> bool {
         !tile_map.is_rect_blocked(&self.rect())
     }
 
+    /// Whether either bottom corners are on top of a solid tile.
     fn is_standing(&self, tile_map: &TileMap) -> bool {
         tile_map.is_blocked(self.rect().bottom_left().addy(1))
             || tile_map.is_blocked(self.rect().bottom_right().addy(1))
     }
 
+    /// Whether either bottom corners are on top of a `Rectangle`.
     fn is_standing_on_rect(&self, rect: Rectangle) -> bool {
         rect.contains(self.rect().bottom_left().addy(1))
             || rect.contains(self.rect().bottom_right().addy(1))

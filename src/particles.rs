@@ -1,3 +1,31 @@
+//! A particle system to easily animate particles
+//!
+//! Particles can be either simple pixels, or animations from an image.
+//!
+//! # Examples
+//!
+//! ```
+//! use firefly_rust::*;
+//! use ffz_utils::{ animation::*, particles::*, utilities::* };
+//! let image = firefly_rust::load_file_buf("particle_animation").unwrap().into_image();
+//! let animation = Animation::new(4, Size::new(16, 16), Point::MIN, 5);
+//! let visualization = Visualization::Animation(animation, image);
+//! let mut particles = ParticleSystem::new(50, Size::new(100, 100), visualization);
+//! particles.spawn_radial_burst(
+//!     Point::new(120, 60),
+//!     random_range(8, 14) as i32,
+//!     || random_range(1, 2) as i32,
+//!     2,
+//!     Color::Red,
+//! );
+//!
+//! // In `update()`
+//! particles.update();
+//!
+//! // In `render()`
+//! particles.draw();
+//! ```
+
 extern crate alloc;
 use crate::animation::Animation;
 use crate::utilities::random_range;
@@ -14,6 +42,7 @@ const COS_TABLE: [i32; 16] = [
     16, 15, 11, 6, 0, -6, -11, -15, -16, -15, -11, -6, 0, 6, 11, 15,
 ];
 
+/// Whether particle should be displayed as a single pixel or a sprite animation.
 pub enum Visualization {
     Point,
     Animation(Animation, ImageBuf),
@@ -26,17 +55,20 @@ impl Default for Visualization {
 }
 
 impl Visualization {
+    /// Draw particle based on `Visualization` type.
     fn draw(&self, position: Point, color: Color) {
         match self {
             Visualization::Point => draw_point(position, color),
             Visualization::Animation(animation, texture) => {
                 let animation_position = position - animation.middle();
-                let sub_image = texture.sub(animation.frame_position(), animation.frame_size());
+                let sub_image =
+                    texture.sub(animation.current_frame_position(), animation.frame_size());
                 draw_sub_image(&sub_image, animation_position);
             }
         }
     }
 
+    /// Call on each `update()` to handle particle animations.
     fn update(&mut self) {
         match self {
             Visualization::Point => (),
@@ -45,10 +77,10 @@ impl Visualization {
     }
 }
 
+/// A single moving particle
 #[derive(Default, Clone, Copy)]
 pub struct Particle {
-    pub x: i32,
-    pub y: i32,
+    pub position: Point,
     pub vx: i32,
     pub vy: i32,
     pub lifetime: i32,
@@ -59,41 +91,56 @@ pub struct Particle {
 }
 
 impl Particle {
+    /// Current position of the particle.
     fn position(&self) -> Point {
-        Point {
-            x: self.x,
-            y: self.y,
-        }
+        self.position
     }
 
+    /// X position of the particle
+    pub fn x(&self) -> i32 {
+        self.position.x
+    }
+
+    /// Y position of the particle
+    pub fn y(&self) -> i32 {
+        self.position.y
+    }
+
+    /// Deactivate the particle so that it won't display or update.
+    ///
+    /// The `ParticleSystem` keeps a set number of particles and
+    /// deactivates those that shouldn't be used.
     fn deactivate_particle(&mut self) {
         self.active = false;
         self.lifetime = 0;
     }
 }
 
+/// Keeps track of all particles and allows spawning new ones.
 pub struct ParticleSystem {
-    max_width: i32,
-    max_height: i32,
+    size: Size,
     particles: Vec<Particle>,
     visualization: Visualization,
 }
 
 impl ParticleSystem {
-    pub fn new(
-        max_particles: usize,
-        max_width: i32,
-        max_height: i32,
-        visualization: Visualization,
-    ) -> Self {
+    /// Create a new particle system with `max_particles` number of particles.
+    ///
+    /// - `max_particles` - Maximum number of particles to show at once.
+    /// - `size` - When particles move out of the size (+/- 5) they are deactivated.
+    /// - `visualization` - Show particle as Pixel or Animation.
+    pub fn new(max_particles: usize, size: Size, visualization: Visualization) -> Self {
         Self {
-            max_width,
-            max_height,
+            size,
             visualization,
             particles: vec![Particle::default(); max_particles],
         }
     }
 
+    /// Should be called on every `update()`
+    ///
+    /// Moves particles according to their speed and deactivates
+    /// particles that are out of bounds or have reached their liftime.
     pub fn update(&mut self) {
         for particle in self.particles.iter_mut() {
             if !particle.active {
@@ -101,15 +148,15 @@ impl ParticleSystem {
             }
             self.visualization.update();
 
-            particle.x += (particle.vx >> FIXED_POINT_SHIFT) as i32;
-            particle.y += (particle.vy >> FIXED_POINT_SHIFT) as i32;
+            particle.position.x += (particle.vx >> FIXED_POINT_SHIFT) as i32;
+            particle.position.y += (particle.vy >> FIXED_POINT_SHIFT) as i32;
 
             particle.lifetime = particle.lifetime.saturating_sub(1);
 
-            let out_of_bounds = particle.x < -5
-                || particle.x > self.max_width + 5
-                || particle.y < -5
-                || particle.y > self.max_height + 5;
+            let out_of_bounds = particle.x() < -5
+                || particle.x() > self.size.width + 5
+                || particle.y() < -5
+                || particle.y() > self.size.height + 5;
 
             if particle.lifetime == 0 || out_of_bounds {
                 particle.deactivate_particle();
@@ -117,6 +164,9 @@ impl ParticleSystem {
         }
     }
 
+    /// Draw all the particles.
+    ///
+    /// Should be called during `render()`
     pub fn draw(&self) {
         for particle in self.particles.iter() {
             if !particle.active {
@@ -127,10 +177,10 @@ impl ParticleSystem {
         }
     }
 
+    /// Spawn a new particle unless the maximum has been reached.
     pub fn spawn(
         &mut self,
-        x: i32,
-        y: i32,
+        position: Point,
         vx: i32,
         vy: i32,
         lifetime: i32,
@@ -138,8 +188,7 @@ impl ParticleSystem {
         size: u8,
     ) {
         if let Some(particle) = self.particles.iter_mut().find(|p| !p.active) {
-            particle.x = x;
-            particle.y = y;
+            particle.position = position;
             particle.vx = vx;
             particle.vy = vy;
             particle.lifetime = lifetime;
@@ -150,10 +199,10 @@ impl ParticleSystem {
         }
     }
 
+    /// Spawn a radial burst of particles
     pub fn spawn_radial_burst(
         &mut self,
-        x: i32,
-        y: i32,
+        position: Point,
         count: i32,
         speed: impl Fn() -> i32,
         lifetime: i32,
@@ -175,8 +224,7 @@ impl ParticleSystem {
             let vx = particle_speed * COS_TABLE[dir];
             let vy = particle_speed * SIN_TABLE[dir];
 
-            particle.x = x;
-            particle.y = y;
+            particle.position = position;
             particle.vx = vx;
             particle.vy = vy;
             particle.lifetime = lifetime;
@@ -189,12 +237,14 @@ impl ParticleSystem {
         }
     }
 
+    /// Deactivate all particles
     pub fn clear(&mut self) {
         for particle in self.particles.iter_mut() {
             particle.deactivate_particle();
         }
     }
 
+    /// The number of currently active particles
     pub fn count(&self) -> usize {
         self.particles.iter().filter(|p| p.active).count()
     }
