@@ -22,15 +22,26 @@ pub struct Tile {
     pub rect: Rectangle,
     pub sprite_index: Sprite,
     solid: bool,
+    spritesheet_position: Point,
 }
 
 impl Tile {
     /// Create a new tile
-    pub fn new(rect: Rectangle, sprite_index: i32, is_solid: bool) -> Self {
+    ///
+    /// - `rect` is the size and position of the tile in the map.
+    /// - `spritesheet_size` is the size of the spritesheet in tiles.
+    /// - `sprite_index` is the index of the sprite in the spritesheet.
+    /// - `solid` is whether the tile is blocking.
+    pub fn new(rect: Rectangle, spritesheet_size: Size, sprite_index: i32, solid: bool) -> Self {
+        let spritesheet_position = Point {
+            x: ((sprite_index % spritesheet_size.width) * rect.width()),
+            y: ((sprite_index / spritesheet_size.height) * rect.height()),
+        };
         Self {
             rect,
             sprite_index,
-            solid: is_solid,
+            solid,
+            spritesheet_position,
         }
     }
 
@@ -46,13 +57,7 @@ impl Tile {
 
     /// Draw tile as a sub_image from `spritesheet` at `position`.
     pub fn draw(&self, position: Point, spritesheet: &ImageBuf) {
-        let tile_sprite = spritesheet.sub(
-            Point {
-                x: ((self.sprite_index % self.rect.width()) * self.rect.width()),
-                y: ((self.sprite_index / self.rect.height()) * self.rect.height()),
-            },
-            self.rect.size,
-        );
+        let tile_sprite = spritesheet.sub(self.spritesheet_position, self.rect.size);
         draw_sub_image(&tile_sprite, position);
     }
 }

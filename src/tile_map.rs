@@ -7,6 +7,8 @@
 //! ```
 //! use firefly_rust::*;
 //! use ffz_utils::{camera::*, rectangle::*, tile::*, tile_map::*};
+//!
+//! // In `boot()`
 //! let spritesheet = firefly_rust::load_file_buf("spritesheet").unwrap().into_image();
 //! let tile_size = Size::new(16, 16);
 //! let tiles = vec![
@@ -17,6 +19,8 @@
 //! ];
 //! let map = TileMap::new(tiles, Size::new(32, 32), tile_size, spritesheet);
 //! let camera = Camera::new(Size::new(500, 500));
+//!
+//! // In `render()`
 //! map.draw(&camera);
 //! ```
 
@@ -66,22 +70,31 @@ impl TileMap {
         is_solid: impl Fn(i32) -> bool,
         spritesheet: ImageBuf,
     ) -> Self {
-        let height = data.len() as i32;
-        let width = data.first().map_or(0, |row| row.len() as i32);
+        let map_size = Size {
+            width: data.first().map_or(0, |row| row.len() as i32),
+            height: data.len() as i32,
+        };
+        let spritesheet_size = Size::new(
+            spritesheet.width() as i32 / tile_size.width,
+            spritesheet.height() as i32 / tile_size.height,
+        );
 
-        let mut tiles = Vec::with_capacity((width * height) as usize);
+        let mut tiles = Vec::with_capacity((map_size.width * map_size.height) as usize);
 
         for (y, row) in data.iter().enumerate() {
             for (x, &sprite_index) in row.iter().enumerate() {
                 let solid = is_solid(sprite_index);
-                let rect = Rectangle::new(Point::new(x as i32, y as i32), tile_size);
-                tiles.push(Tile::new(rect, sprite_index, solid));
+                let rect = Rectangle::new(
+                    Point::new(x as i32 * tile_size.width, y as i32 * tile_size.height),
+                    tile_size,
+                );
+                tiles.push(Tile::new(rect, spritesheet_size, sprite_index, solid));
             }
         }
 
         Self {
             tiles,
-            map_size: Size { width, height },
+            map_size,
             tile_size,
             spritesheet,
         }
