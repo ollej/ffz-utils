@@ -15,9 +15,9 @@
 //! );
 //! ```
 
-use core::ops::{Div, Mul, Sub};
+use core::ops::{Add, Div, Mul, Sub};
 
-use firefly_rust::{Angle, math};
+use firefly_rust::{Angle, Pad, Point, math};
 
 #[allow(unused)]
 use micromath::F32Ext;
@@ -105,13 +105,66 @@ impl Mul<f32> for Vector {
     }
 }
 
-impl Div<f32> for &Vector {
+impl Mul<f32> for &Vector {
+    type Output = Vector;
+
+    fn mul(self, rhs: f32) -> Self::Output {
+        *self * rhs
+    }
+}
+
+impl Div<f32> for Vector {
     type Output = Vector;
 
     fn div(self, rhs: f32) -> Self::Output {
         Vector {
             x: self.x / rhs,
             y: self.y / rhs,
+        }
+    }
+}
+
+impl Div<f32> for &Vector {
+    type Output = Vector;
+
+    fn div(self, rhs: f32) -> Self::Output {
+        *self / rhs
+    }
+}
+
+impl Add<Point> for Vector {
+    type Output = Vector;
+
+    fn add(self, rhs: Point) -> Self::Output {
+        Self {
+            x: self.x + rhs.x as f32,
+            y: self.y + rhs.y as f32,
+        }
+    }
+}
+
+impl Add<Point> for &Vector {
+    type Output = Vector;
+
+    fn add(self, rhs: Point) -> Self::Output {
+        *self + rhs
+    }
+}
+
+impl Into<Point> for Vector {
+    fn into(self) -> Point {
+        Point {
+            x: self.x as i32,
+            y: self.y as i32,
+        }
+    }
+}
+
+impl From<Pad> for Vector {
+    fn from(value: Pad) -> Self {
+        Self {
+            x: value.x as f32 / 1000.0,
+            y: -value.y as f32 / 1000.0,
         }
     }
 }
