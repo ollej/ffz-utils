@@ -15,7 +15,7 @@
 //! );
 //! ```
 
-use core::ops::Sub;
+use core::ops::{Div, Mul, Sub};
 
 use firefly_rust::{Angle, math};
 
@@ -23,13 +23,14 @@ use firefly_rust::{Angle, math};
 use micromath::F32Ext;
 
 /// A 2D f32 vector with some angle calculation methods.
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone, PartialEq)]
 pub struct Vector {
-    x: f32,
-    y: f32,
+    pub x: f32,
+    pub y: f32,
 }
 
 impl Vector {
+    pub const ZERO: Vector = Vector::new(0.0, 0.0);
     pub const AXIS_ANGLE: Vector = Vector::new(1.0, 0.0);
 
     /// Create a `Vector` from `x` and `y`
@@ -65,6 +66,11 @@ impl Vector {
         (self.x.powi(2) + self.y.powi(2)).sqrt()
     }
 
+    /// Normalization of the vector
+    pub fn normalize(&self) -> Self {
+        self / self.magnitude()
+    }
+
     /// Angle to another vector.
     pub fn angle_to(&self, other: &Vector) -> Angle {
         let angle = other.y.atan2(other.x) - self.y.atan2(self.x);
@@ -84,6 +90,28 @@ impl Sub<Vector> for Vector {
         Vector {
             x: self.x - rhs.x,
             y: self.y - rhs.y,
+        }
+    }
+}
+
+impl Mul<f32> for Vector {
+    type Output = Vector;
+
+    fn mul(self, rhs: f32) -> Self::Output {
+        Vector {
+            x: self.x * rhs,
+            y: self.y * rhs,
+        }
+    }
+}
+
+impl Div<f32> for &Vector {
+    type Output = Vector;
+
+    fn div(self, rhs: f32) -> Self::Output {
+        Vector {
+            x: self.x / rhs,
+            y: self.y / rhs,
         }
     }
 }
@@ -123,6 +151,24 @@ mod tests_vector {
         ];
         for (vec, magnitude) in vecs.iter().zip(magnitudes.iter()) {
             assert_eq!(vec.magnitude(), *magnitude);
+        }
+    }
+
+    #[test]
+    fn test_normalize() {
+        let vecs = vectors();
+        let normalized_vectors = [
+            Vector::new(1.0, 0.0),
+            Vector::new(-1.0, 0.0),
+            Vector::new(0.0, 1.0),
+            Vector::new(0.0, -1.0),
+            Vector::new(0.70710677, 0.70710677),
+            Vector::new(-0.70710677, 0.70710677),
+            Vector::new(0.70710677, -0.70710677),
+            Vector::new(-0.70710677, -0.70710677),
+        ];
+        for (vec, normalized) in vecs.iter().zip(normalized_vectors.iter()) {
+            assert_eq!(vec.normalize(), *normalized);
         }
     }
 

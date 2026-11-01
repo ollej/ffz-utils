@@ -32,20 +32,35 @@ use crate::{camera::Camera, rectangle::Rectangle, tile::Tile, utilities::random_
 
 /// A world map based on tiles that can be drawn on the screen.
 pub struct TileMap {
+    /// A list of each `Tile` in the world.
     pub tiles: Vec<Tile>,
+    /// The size of the world in tiles.
     pub map_size: Size,
+    /// Size of each individual tile in the map.
     pub tile_size: Size,
+    /// An image containing the tile sprites.
     pub spritesheet: ImageBuf,
+    /// Size of the world in pixels.
+    pub map_size_in_pixels: Size,
 }
 
 impl TileMap {
     /// Create a new `TileMap`
+    ///
+    /// - `tiles` is a list of each `Tile` in the world.
+    /// - `map_size` is the size of the world in tiles.
+    /// - `tile_size` is the size of each individual tile in the map.
+    /// - `spritesheet` is an image containing the tile sprites.
     pub fn new(tiles: Vec<Tile>, map_size: Size, tile_size: Size, spritesheet: ImageBuf) -> Self {
         Self {
             tiles,
             map_size,
             tile_size,
             spritesheet,
+            map_size_in_pixels: Size::new(
+                map_size.width * tile_size.width,
+                map_size.height * tile_size.height,
+            ),
         }
     }
 
@@ -92,12 +107,7 @@ impl TileMap {
             }
         }
 
-        Self {
-            tiles,
-            map_size,
-            tile_size,
-            spritesheet,
-        }
+        Self::new(tiles, map_size, tile_size, spritesheet)
     }
 
     /// Draw the tiles to the screen based on the `camera` position.

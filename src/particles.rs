@@ -83,8 +83,8 @@ pub struct Particle {
     pub position: Point,
     pub vx: i32,
     pub vy: i32,
-    pub lifetime: i32,
-    pub max_lifetime: i32,
+    pub lifetime: u32,
+    pub max_lifetime: u32,
     pub color: Color,
     pub size: u8,
     pub active: bool,
@@ -183,7 +183,7 @@ impl ParticleSystem {
         position: Point,
         vx: i32,
         vy: i32,
-        lifetime: i32,
+        lifetime: u32,
         color: Color,
         size: u8,
     ) {
@@ -205,7 +205,7 @@ impl ParticleSystem {
         position: Point,
         count: i32,
         speed: impl Fn() -> i32,
-        lifetime: i32,
+        lifetime: u32,
         color: Color,
     ) {
         let mut spawned_particles = 0;
