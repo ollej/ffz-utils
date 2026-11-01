@@ -169,6 +169,15 @@ impl From<Pad> for Vector {
     }
 }
 
+impl From<Point> for Vector {
+    fn from(value: Point) -> Self {
+        Self {
+            x: value.x as f32,
+            y: value.y as f32,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests_vector {
     use super::*;
