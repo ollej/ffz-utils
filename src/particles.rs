@@ -28,6 +28,7 @@
 
 extern crate alloc;
 use crate::animation::Animation;
+use crate::camera::Camera;
 use crate::utilities::random_range;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -167,13 +168,15 @@ impl ParticleSystem {
     /// Draw all the particles.
     ///
     /// Should be called during `render()`
-    pub fn draw(&self) {
+    pub fn draw(&self, camera: &Camera) {
         for particle in self.particles.iter() {
             if !particle.active {
                 continue;
             }
 
-            self.visualization.draw(particle.position(), particle.color);
+            let transformed_position = camera.world_to_screen(particle.position());
+            self.visualization
+                .draw(transformed_position, particle.color);
         }
     }
 
