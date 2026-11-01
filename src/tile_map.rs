@@ -78,11 +78,13 @@ impl TileMap {
     ///   The number is the `sprite_index` of the tile in the spritesheet.
     /// - `tile_size` is the size of each tile in the spritesheet.
     /// - `is_solid` is called with the `sprite_index`, the tile will be solid if it returns true.
+    /// - `modify_tile` is called with `sprite_index` to allow overriding it.
     /// - `spritesheet` is an image where tiles will be drawn from.
     pub fn new_from_2d_array(
         data: &[&[i32]],
         tile_size: Size,
         is_solid: impl Fn(i32) -> bool,
+        modify_tile: impl Fn(i32) -> i32,
         spritesheet: ImageBuf,
     ) -> Self {
         let map_size = Size {
@@ -98,12 +100,13 @@ impl TileMap {
 
         for (y, row) in data.iter().enumerate() {
             for (x, &sprite_index) in row.iter().enumerate() {
-                let solid = is_solid(sprite_index);
+                let modified_tile = modify_tile(sprite_index);
+                let solid = is_solid(modified_tile);
                 let rect = Rectangle::new(
                     Point::new(x as i32 * tile_size.width, y as i32 * tile_size.height),
                     tile_size,
                 );
-                tiles.push(Tile::new(rect, spritesheet_size, sprite_index, solid));
+                tiles.push(Tile::new(rect, spritesheet_size, modified_tile, solid));
             }
         }
 
