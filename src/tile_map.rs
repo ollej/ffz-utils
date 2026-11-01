@@ -68,7 +68,7 @@ impl TileMap {
     pub fn rect(&self) -> Rectangle {
         Rectangle {
             position: Point::MIN,
-            size: self.map_size,
+            size: self.map_size_in_pixels,
         }
     }
 

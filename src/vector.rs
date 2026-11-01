@@ -38,6 +38,10 @@ impl Vector {
         Self { x, y }
     }
 
+    pub fn from_point(point: Point) -> Self {
+        point.into()
+    }
+
     /// Returns the integer value of `x`
     pub fn xu(&self) -> i32 {
         math::floor(self.x) as i32
